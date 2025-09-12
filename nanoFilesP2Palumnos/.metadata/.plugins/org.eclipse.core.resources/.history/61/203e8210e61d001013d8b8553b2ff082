@@ -1,0 +1,19 @@
+package es.um.redes.nanoFiles.tcp.client;
+
+import java.io.RandomAccessFile;
+import java.net.Socket;
+
+public class NFConnectorThread extends Thread{
+
+	private Socket socket;
+	private RandomAccessFile fichero;
+	private static Semaphore;
+	
+//	public NFConnectorThread(Socket newSocket) {
+//		socket = newSocket;
+//	}
+//	
+	public void run() {
+	}
+	
+}

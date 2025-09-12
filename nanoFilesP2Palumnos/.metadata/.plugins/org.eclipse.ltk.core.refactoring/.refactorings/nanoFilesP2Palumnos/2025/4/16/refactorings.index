@@ -1,0 +1,32 @@
+1744663154160	Rename field 'OPERATION_FILELIST_AVAILABLE'
+1744922489733	Delete element
+1744923105425	Rename field 'CHUNK_SIZE'
+1744923450892	Delete element
+1744923691918	Delete element
+1744923712887	Rename resource 'ubuntu-24.04.2-desktop-amd64.iso'
+1744923883319	Rename resource 'cervantes.txt'
+1744924480357	Delete element
+1744925495128	Delete element
+1745009401373	Delete element
+1745010167097	Delete element
+1745010173528	Delete element
+1745010176273	Delete element
+1745010693887	Delete element
+1745011024395	Delete elements
+1745011754400	Delete element
+1745011757771	Delete element
+1745018822941	Encapsulate field 'quitPort, ...'
+1745085608593	Delete element
+1745086328915	Rename local variable 'uploadToServer'
+1745089367297	Rename field 'OPCODE_SEND_FILE'
+1745110359010	Move 'ejemplo.txt' to 'nf-shared1'
+1745110361220	Move 'lorem.txt' to 'nf-shared2'
+1745110366750	Delete element
+1745110374032	Delete elements
+1745159535401	Rename field 'mutex'
+1745162833538	Rename field 'RespuestaFichero'
+1745163065816	Rename field 'FileRequest'
+1745163445424	Rename field 'ambiguo'
+1745163474073	Rename field 'global_offset'
+1745165650412	Delete element
+1745166712872	Copy file

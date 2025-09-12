@@ -1,0 +1,32 @@
+package es.um.redes.nanoFiles.tcp.client;
+
+import java.io.RandomAccessFile;
+import java.net.Socket;
+import java.util.concurrent.Semaphore;
+
+public class NFConnectorThread extends Thread{
+
+	private Socket socket;
+	private static Semaphore mutex;
+	
+	private RandomAccessFile fichero;
+	private static long global_offset;
+	
+	synchronized long getOffset() {
+		long offset =  global_offset;
+		global_offset+=NFConnector.MAX_CHUNK_SIZE;
+		return offset;
+	}
+	
+	synchronized void writeFile(long offset, int size) {
+		fichero.seek(offset);
+	}
+	
+//	public NFConnectorThread(Socket newSocket) {
+//		socket = newSocket;
+//	}
+//	
+	public void run() {
+	}
+	
+}

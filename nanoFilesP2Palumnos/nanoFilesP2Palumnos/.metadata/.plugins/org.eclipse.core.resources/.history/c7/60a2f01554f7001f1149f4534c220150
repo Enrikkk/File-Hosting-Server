@@ -1,0 +1,5 @@
+package es.um.redes.nanoFiles.udp.server;
+
+public class FileInfo {
+
+}

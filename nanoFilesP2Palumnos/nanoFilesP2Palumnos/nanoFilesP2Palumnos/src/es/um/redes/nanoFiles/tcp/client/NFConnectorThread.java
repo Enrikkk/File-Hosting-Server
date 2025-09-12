@@ -1,0 +1,38 @@
+package es.um.redes.nanoFiles.tcp.client;
+
+import java.io.IOException;
+import java.io.RandomAccessFile;
+
+import es.um.redes.nanoFiles.util.FileInfo;
+
+public class NFConnectorThread extends Thread{
+	
+	private RandomAccessFile fichero;
+	private static long global_offset;
+	FileInfo respuestaFichero;
+	String filerequest;
+	NFConnector nf;
+	
+	synchronized long getOffset() {
+		long offset =  global_offset;
+		global_offset+=NFConnector.MAX_CHUNK_SIZE;
+		return offset;
+	}
+	
+	synchronized void writeFile(long offset, byte[] contenido) {
+		try {
+			fichero.seek(offset);
+			fichero.write(contenido);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+	}
+	
+//	public NFConnectorThread(Socket newSocket) {
+//		socket = newSocket;
+//	}
+//	
+	
+}

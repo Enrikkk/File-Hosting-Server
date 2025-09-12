@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<qualifiedTypeNameHistroy>
+    <fullyQualifiedTypeName name="java.lang.Integer"/>
+    <fullyQualifiedTypeName name="javax.management.RuntimeErrorException"/>
+    <fullyQualifiedTypeName name="java.net.ServerSocket"/>
+    <fullyQualifiedTypeName name="java.io.DataInput"/>
+    <fullyQualifiedTypeName name="java.io.DataOutput"/>
+    <fullyQualifiedTypeName name="java.io.DataOutputStream"/>
+    <fullyQualifiedTypeName name="java.io.DataInputStream"/>
+    <fullyQualifiedTypeName name="java.net.Socket"/>
+    <fullyQualifiedTypeName name="java.lang.String"/>
+    <fullyQualifiedTypeName name="es.um.redes.nanoFiles.tcp.server.NFServerThread"/>
+    <fullyQualifiedTypeName name="es.um.redes.nanoFiles.tcp.client.NFConnector"/>
+    <fullyQualifiedTypeName name="java.lang.ArrayStoreException"/>
+    <fullyQualifiedTypeName name="java.net.InetAddress"/>
+    <fullyQualifiedTypeName name="es.um.redes.nanoFiles.udp.message.DirMessageOps"/>
+    <fullyQualifiedTypeName name="java.lang.StringBuffer"/>
+    <fullyQualifiedTypeName name="java.nio.file.Files"/>
+    <fullyQualifiedTypeName name="java.io.File"/>
+    <fullyQualifiedTypeName name="es.um.redes.nanoFiles.logic.NFController.ESTADOS"/>
+    <fullyQualifiedTypeName name="java.util.HashMap"/>
+    <fullyQualifiedTypeName name="es.um.redes.nanoFiles.util.FileInfo"/>
+    <fullyQualifiedTypeName name="java.util.Arrays"/>
+    <fullyQualifiedTypeName name="java.util.LinkedList"/>
+    <fullyQualifiedTypeName name="es.um.redes.nanoFiles.udp.message.DirMessage"/>
+    <fullyQualifiedTypeName name="es.um.redes.nanoFiles.tcp.server.NFServer"/>
+    <fullyQualifiedTypeName name="java.net.InetSocketAddress"/>
+    <fullyQualifiedTypeName name="javax.print.attribute.standard.PrinterState"/>
+    <fullyQualifiedTypeName name="es.um.redes.nanoFiles.application.NanoFiles"/>
+    <fullyQualifiedTypeName name="es.um.redes.nanoFiles.tcp.message.PeerMessage"/>
+    <fullyQualifiedTypeName name="es.um.redes.nanoFiles.tcp.message.PeerMessageOps"/>
+    <fullyQualifiedTypeName name="java.lang.System"/>
+</qualifiedTypeNameHistroy>

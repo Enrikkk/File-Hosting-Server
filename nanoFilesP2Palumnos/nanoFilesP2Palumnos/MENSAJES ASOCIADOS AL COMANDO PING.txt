@@ -1,0 +1,187 @@
+MENSAJES ASOCIADOS AL COMANDO "ping"
+------------------------------------
+
+Mensaje "Solicitud de Ping"
+---------------------------
+
+ - Operación		: ping.
+ - Emisor		: NanoFiles.
+ - Receptor		: Directory.
+ - Campo/s adicionales	: identificador de protocolo del peer.
+ - Finalidad		: pedirle al directorio que compruebe si está activo y si el protocol id es compatible.
+ - Condiciones de envío : ninguna.
+ - Acciones al recibirlo: el directorio comprueba si el protocol id recibido es igual al suyo y responde según se cumpla.
+ - Formato		: 
+
+operation: 	ping\n
+protocol:	<protocolId>\n
+\n
+
+ - Ejemeplo
+
+operation: 	ping\n
+protocol:	<77777777>\n
+\n
+
+NOTA: en realidad lo que se envía es...
+
+operation:ping\nprotocol:7777777\n\n
+
+Mensaje "Respuesta de ping correcto"
+------------------------------------
+
+ - Operación		: pingOK.
+ - Emisor		: Directory.
+ - Receptor		: NanoFiles.
+ - Campo/s adicionales	: ninguno.
+ - Finalidad		: informar al peer de que el directorio está a la escucha y el protocol id es el mismo (compatible).
+ - Condiciones de envío : que se haya recibido un mensaje pingRequest y que se cumpla que el protocol id es compatible.
+ - Acciones al recibirlo: el peer informa por la consola de que el directorio está activo y es compatible.
+ - Formato		: 
+
+operation: 	pingOK\n
+\n
+
+
+NOTA: en realidad lo que se envía es...
+
+operation:pingOK\n\n
+
+Mensaje "Respuesta de ping incorrecto"
+--------------------------------------
+
+ - Operación		: pingNOK.
+ - Emisor		: Directory.
+ - Receptor		: NanoFiles.
+ - Campo/s adicionales	: ninguno.
+ - Finalidad		: informar al peer de que el directorio está a la escucha pero que el protocol id no es el mismo (incompatible).
+ - Condiciones de envío : que se haya recibido un mensaje pingRequest y el protocol id es incompatible.
+ - Acciones al recibirlo: el peer informa por la consola de que el directorio está activo pero que no es compatible.
+ - Formato		: 
+
+operation: 	pingNOK\n
+\n
+
+
+NOTA: en realidad lo que se envía es...
+
+operation:pingNOK\n\n
+
+
+
+
+MENSAJE ASOCIADOS AL COMANDO "filelist"
+---------------------------------------
+
+Mensaje "Solicitud de fileList"
+---------------------------
+
+ - Operación		: filelist.
+ - Emisor		: NanoFiles.
+ - Receptor		: Directory.
+ - Campo/s adicionales	: ninguno.
+ - Finalidad		: pedirle al directorio una lista con todos los ficheros (lista que incluirá los nombres, tamaño en bytes y código hash de cada fichero) que el/los clientes Nanfile/s hayan subido al mismo.
+ - Condiciones de envío : se haya establecido conexión exitosamente con el directorio y se haya asegurado de que ha sido exitosa mediante el comando ping.
+ - Acciones al recibirlo: el directorio envía la información descrita en el apartado "Finalidad" de todos los ficheros que tenga y, en caso de que no tenga ninguno, no enviará información alguna (datagrama vacío).
+ - Formato		: 
+
+operation: 	filelist\n
+\n
+
+NOTA: en realidad lo que se envía es...
+
+operation:filelist\n
+
+Mensaje "Respuesta con lista de files"
+--------------------------------------
+
+ - Operación		: availableFiles.
+ - Emisor		: Directory.
+ - Receptor		: NanoFiles.
+ - Campo/s adicionales	: campos con nombre del fichero, su tamaño y hash.
+ - Finalidad		: dar al peer que lo pidió la lista con todos los ficheros que haya subidos en el directorio, dicha lista contendrá el nombre, tamaño y hash de cada fichero subido.
+ - Condiciones de envío : que se haya recibido un mensaje filelist de un peer.
+ - Acciones al recibirlo: el directorio envía un mensaje al peer que lo pidió con la información definida en el apartado "Finalidad".
+ - Formato		: 
+
+operation: 	availableFiles\n
+file:		<nombre1>&<tamaño1>&<hash1>\n
+file:		<nombre2>&<tamaño2>&<hash2>\n
+...
+\n
+
+// Básicamente, utilizaremos un formato de tipo field:value en el que el field para cada fichero enviado será un único campo "file" mientras que el value para cada campo file contendrá los valores nombre, tamaño y hash de dicho fichero enviado, separados entre si por el símbolo &.
+
+
+
+
+MENSAJE ASOCIADOS AL COMANDO "serve"
+---------------------------------------
+
+Mensaje "Servir files"
+----------------------
+
+ - Operación		: serve.
+ - Emisor		: NanoFiles.
+ - Receptor		: Directory.
+ - Campo/s adicionales	: lista con la información (nombre, tamaño y hash) de todos los ficheros que el peer desea subir al directorio.
+ - Finalidad		: informar de que como peer has compartido tus ficheros al directorio, es decir, ahora son accesibles a través del mismo.
+ - Condiciones de envío : se haya establecido conexión exitosamente con el directorio y se haya asegurado de que ha sido exitosa mediante el comando ping.
+ - Acciones al recibirlo: el directorio registra la información de todos los ficheros enviados por el peer.
+ - Formato		: 
+
+operation: 	serve\n
+file:		<nombre1>&<tamaño1>&<hash1>\n
+file:		<nombre2>&<tamaño2>&<hash2>\n
+...
+\n
+
+Mensaje "Respuesta de confirmación de registro"
+-----------------------------------------------
+
+ - Operación		: serveSuccess.
+ - Emisor		: Directory.
+ - Receptor		: NanoFiles.
+ - Campo/s adicionales	: ninguno.
+ - Finalidad		: informar al peer que pidió registrar una lista de files en el directorio de que esta ha sido registrada con éxito.
+ - Condiciones de envío : que se haya recibido previamente el comando "serve" de algún peer.
+ - Formato		: 
+
+operation: 	serveSuccess\n
+\n
+
+
+
+
+MENSAJE ASOCIADOS AL COMANDO "download"
+---------------------------------------
+
+Mensaje "Descargar file"
+------------------------
+
+ - Operación		: download.
+ - Emisor		: NanoFiles.
+ - Receptor		: Directory.
+ - Campo/s adicionales	: nombre completo o subcadena del file a descargar.
+ - Finalidad		: pedirle al directorio que ponga a los peers que hayan compartido un determinado fichero (en el cuál nosotros estamos interesados) a enviárnoslo.
+ - Condiciones de envío : se haya establecido conexión exitosamente con el directorio y se haya asegurado de que ha sido exitosa mediante el comando ping.
+ - Acciones al recibirlo: el directorio debe comprobar que el fichero identificado por la cadena enviada en el mensaje está disponible (y responder al peer que lo pidió de acuerdo a la disponibilidad del fichero, es decir, está o no está disponible) y, en dicho caso, poner a los peers que lo compartieron a enviárnoslo.
+ - Formato		: 
+
+operation: 	download\n
+fileName:	<name>\n
+\n
+
+Mensaje "Respuesta de confirmación de file disponible"
+------------------------------------------------------
+
+ - Operación		: fileAvailable.
+ - Emisor		: Directory.
+ - Receptor		: NanoFiles.
+ - Campo/s adicionales	: ninguno.
+ - Finalidad		: informar al peer que pidió descargar un file dado su nombre o una subcadena del mismo de que el file está disponible y de que se ha puesto a los files proveedores a enviárnoslo.
+ - Condiciones de envío : que se haya recibido previamente el comando "download" del peer al que se está respondiendo y que exista el fichero identificado por la cadena del campo "fileName" de dicho mensaje.
+ - Formato		: 
+
+operation: 	fileAvailable\n
+\n

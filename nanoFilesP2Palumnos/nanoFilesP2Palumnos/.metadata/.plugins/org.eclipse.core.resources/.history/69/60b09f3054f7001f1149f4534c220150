@@ -1,0 +1,23 @@
+package es.um.redes.nanoFiles.udp.server;
+
+public class FileInfo {
+	
+	// Vamos a crear una nueva clase, llamada FileInfo.
+	// La funcionalidad de esta clase será la de almacenar tripletas de datos que contenga información 
+	// sobre los ficheros subidos al directorio.
+	// La tripleta consistirá en tres Strings, uno para el nombre del fichero, otro para el tamaño 
+	// del mismo y un último para su código hash.
+	
+	// Atributos
+	private String name;
+	private long size;
+	private String hash;
+	
+	// Constructor
+	public FileInfo(String name, long size, String hash) {
+		this.name = name;
+		this.size = size;
+		this.hash = hash;
+	}
+	
+}

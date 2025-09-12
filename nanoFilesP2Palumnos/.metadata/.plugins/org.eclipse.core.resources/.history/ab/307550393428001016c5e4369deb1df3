@@ -1,0 +1,298 @@
+package es.um.redes.nanoFiles.tcp.server;
+
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.EOFException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.net.InetSocketAddress;
+import java.net.ServerSocket;
+import java.net.Socket;
+
+import javax.print.attribute.standard.PrinterState;
+
+import es.um.redes.nanoFiles.application.NanoFiles;
+import es.um.redes.nanoFiles.tcp.message.PeerMessage;
+import es.um.redes.nanoFiles.tcp.message.PeerMessageOps;
+import es.um.redes.nanoFiles.util.FileInfo;
+
+public class NFServer implements Runnable {
+
+	public static final int PORT = 0;
+
+	private ServerSocket serverSocket = null;
+
+	private Thread servingThread = null;
+	
+	private volatile Boolean flag;
+	
+	public NFServer() throws IOException {
+		/*
+		 * TODO: (Boletín SocketsTCP) Crear una direción de socket a partir del puerto
+		 * especificado (PORT)
+		 */
+
+		InetSocketAddress serverSocketAddress = new InetSocketAddress(PORT);
+
+		/*
+		 *
+		 * TODO: (Boletín SocketsTCP) Crear un socket servidor y ligarlo a la dirección
+		 * de socket anterior
+		 */
+
+		serverSocket = new ServerSocket();
+		serverSocket.bind(serverSocketAddress);
+
+	}
+
+	/**
+	 * Método para ejecutar el servidor de ficheros en primer plano. Sólo es capaz
+	 * de atender una conexión de un cliente. Una vez se lanza, ya no es posible
+	 * interactuar con la aplicación.
+	 * 
+	 */
+	public void test() {
+		if (serverSocket == null || !serverSocket.isBound()) {
+			System.err.println(
+					"[fileServerTestMode] Failed to run file server, server socket is null or not bound to any port");
+			return;
+		} else {
+			System.out
+					.println("[fileServerTestMode] NFServer running on " + serverSocket.getLocalSocketAddress() + ".");
+		}
+
+		while (true) {
+			/*
+			 * TODO: (Boletín SocketsTCP) Usar el socket servidor para esperar conexiones de
+			 * otros peers que soliciten descargar ficheros.
+			 */
+
+			boolean connectionOk = false;
+			Socket socket = null;
+			try {
+				socket = serverSocket.accept();
+				connectionOk = true;
+			} catch (Exception e) {
+				System.err.println("Connection refused: " + e.getMessage());
+			}
+
+			/*
+			 * TODO: (Boletín SocketsTCP) Tras aceptar la conexión con un peer cliente, la
+			 * comunicación con dicho cliente para servir los ficheros solicitados se debe
+			 * implementar en el método serveFilesToClient, al cual hay que pasarle el
+			 * socket devuelto por accept.
+			 */
+
+			if (connectionOk) {
+				try {
+					DataInputStream dis = new DataInputStream(socket.getInputStream());
+					DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
+
+//			        int integerReceived = dis.readInt();
+//			        System.out.println("SERVER... Integer received: " + integerReceived);
+//			        
+//			        int integerToSend = integerReceived + 1;
+//			        System.out.println("SEERVER... Sending... " + integerToSend);
+//			        dos.writeInt(integerToSend);
+
+					PeerMessage msgIn = PeerMessage.readMessageFromInputStream(dis);
+					System.out.println("Message received: " + PeerMessageOps.opcodeToOperation(msgIn.getOpcode()));
+					PeerMessage msgOut;
+					if (msgIn.getOpcode() == PeerMessageOps.OPCODE_DOWNLOAD_FILE) {
+						msgOut = new PeerMessage(PeerMessageOps.OPCODE_FILE_METADATA);
+						msgOut.setFileSize(119372);
+						msgOut.setFileHash("8c09599d886fdfd1607d8e99d053be0499f9219a");
+						msgOut.writeMessageToOutputStream(dos);
+					} else {
+						msgOut = new PeerMessage(PeerMessageOps.OPCODE_FILE_NOT_FOUND);
+					}
+
+					socket.close();
+
+				} catch (IOException e) {
+					System.err.println("SERVER... Server exception: " + e.getMessage());
+				}
+			}
+
+		}
+	}
+
+	/**
+	 * Método que ejecuta el hilo principal del servidor en segundo plano, esperando
+	 * conexiones de clientes.
+	 * 
+	 * @see java.lang.Runnable#run()
+	 */
+	public void run() {
+		/*
+		 * TODO: (Boletín SocketsTCP) Usar el socket servidor para esperar conexiones de
+		 * otros peers que soliciten descargar ficheros
+		 */
+		/*
+		 * 
+		 * TODO: (Boletín SocketsTCP) Al establecerse la conexión con un peer, la
+		 * comunicación con dicho cliente se hace en el método
+		 * serveFilesToClient(socket), al cual hay que pasarle el socket devuelto por
+		 * accept
+		 */
+		/*
+		 * TODO: (Boletín TCPConcurrente) Crear un hilo nuevo de la clase
+		 * NFServerThread, que llevará a cabo la comunicación con el cliente que se
+		 * acaba de conectar, mientras este hilo vuelve a quedar a la escucha de
+		 * conexiones de nuevos clientes (para soportar múltiples clientes). Si este
+		 * hilo es el que se encarga de atender al cliente conectado, no podremos tener
+		 * más de un cliente conectado a este servidor.
+		 */
+		flag = false;
+		Socket socket = null;
+		while (!flag) {
+			boolean connectionOk = false;
+			try {
+				socket = serverSocket.accept();
+				connectionOk = true;
+			} catch (IOException e) {
+				System.err.println("Connection refused: " + e.getMessage());
+			}
+			if (connectionOk) {
+				System.out.println("New client connected: " + socket.getInetAddress());
+				NFServerThread connectionThread = new NFServerThread(socket);
+				connectionThread.start();
+		
+			}
+		}
+		try {
+			socket.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
+	}
+	/*
+	 * TODO: (Boletín SocketsTCP) Añadir métodos a esta clase para: 1) Arrancar el
+	 * servidor en un hilo nuevo que se ejecutará en segundo plano 2) Detener el
+	 * servidor (stopserver) 3) Obtener el puerto de escucha del servidor etc.
+	 */
+
+	/**
+	 * Método de clase que implementa el extremo del servidor del protocolo de
+	 * transferencia de ficheros entre pares.
+	 * 
+	 * @param socket El socket para la comunicación con un cliente que desea
+	 *               descargar ficheros.
+	 */
+	public static void serveFilesToClient(Socket socket) {
+		/*
+		 * TODO: (Boletín SocketsTCP) Crear dis/dos a partir del socket
+		 */
+		/*
+		 * TODO: (Boletín SocketsTCP) Mientras el cliente esté conectado, leer mensajes
+		 * de socket, convertirlo a un objeto PeerMessage y luego actuar en función del
+		 * tipo de mensaje recibido, enviando los correspondientes mensajes de
+		 * respuesta.
+		 */
+		/*
+		 * TODO: (Boletín SocketsTCP) Para servir un fichero, hay que localizarlo a
+		 * partir de su hash (o subcadena) en nuestra base de datos de ficheros
+		 * compartidos. Los ficheros compartidos se pueden obtener con
+		 * NanoFiles.db.getFiles(). Los métodos lookupHashSubstring y
+		 * lookupFilenameSubstring de la clase FileInfo son útiles para buscar ficheros
+		 * coincidentes con una subcadena dada del hash o del nombre del fichero. El
+		 * método lookupFilePath() de FileDatabase devuelve la ruta al fichero a partir
+		 * de su hash completo.
+		 */
+		RandomAccessFile fis = null;
+		DataOutputStream fos = null;
+		try {
+			DataInputStream dis = new DataInputStream(socket.getInputStream());
+			DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
+			PeerMessage msgOut, msgIn;
+			msgIn = PeerMessage.readMessageFromInputStream(dis);
+			switch (msgIn.getOpcode()) {
+			case PeerMessageOps.OPCODE_DOWNLOAD_FILE: {
+				FileInfo[] ficheros = FileInfo.lookupFilenameSubstring(NanoFiles.db.getFiles(), msgIn.getFileName());
+				if(ficheros.length == 0) {
+					msgOut = new PeerMessage(PeerMessageOps.OPCODE_FILE_NOT_FOUND);
+					msgOut.writeMessageToOutputStream(dos);
+					socket.close();
+				} else if (ficheros.length == 1) {
+					
+					msgOut = new PeerMessage(PeerMessageOps.OPCODE_FILE_METADATA, ficheros[0].fileSize, ficheros[0].fileHash); 
+					msgOut.writeMessageToOutputStream(dos);
+					while(true) {
+						fis = new RandomAccessFile(ficheros[0].filePath, "r");
+						msgIn = PeerMessage.readMessageFromInputStream(dis);
+						if (msgIn.getOpcode() != PeerMessageOps.OPCODE_GET_CHUNK) {
+							throw new IllegalArgumentException("Unexpected value: " + msgIn.getOpcode());
+						}
+						msgOut = new PeerMessage(PeerMessageOps.OPCODE_RECEIVE_CHUNK);
+						msgOut.setChunkSize(msgIn.getChunkSize());
+						byte[] contenido = new byte[msgIn.getChunkSize()];
+						System.err.println(fis);
+						System.err.println(ficheros[0].filePath);
+						System.err.println(msgIn.getFileOffset());
+						fis.seek(msgIn.getFileOffset());
+						fis.read(contenido);
+						fis.close();
+						msgOut.setContenido(contenido);
+						msgOut.writeMessageToOutputStream(dos);
+					}
+					
+				} else {
+					msgOut = new PeerMessage(PeerMessageOps.OPCODE_AMBIGUOUS_NAME);
+					msgOut.writeMessageToOutputStream(dos);
+					socket.close();
+				}
+			}
+			case PeerMessageOps.OPCODE_UPLOAD_FILE: {
+				if(NanoFiles.db.lookupFilePath(msgIn.getFileHash()) != null) {
+					msgOut = new PeerMessage(PeerMessageOps.OPCODE_FILE_FOUND);
+					msgOut.writeMessageToOutputStream(dos);
+					socket.close();
+				} else {
+					msgOut = new PeerMessage(PeerMessageOps.OPCODE_FILE_NOT_FOUND);
+					msgOut.writeMessageToOutputStream(dos);
+					String nombre = msgIn.getFileName();
+					long tamano = msgIn.getFileSize();
+					fos = new DataOutputStream(new FileOutputStream(nombre));
+					while(tamano > 0) {
+						msgIn = PeerMessage.readMessageFromInputStream(dis);
+						tamano -= msgIn.getChunkSize();
+						fos.write(msgIn.getContenido());
+					}					
+					fos.close();
+					socket.close();
+				}
+				break;
+			}
+			default:
+				throw new IllegalArgumentException("Unexpected value: " + msgIn.getOpcode());
+			}
+		} catch (EOFException e) {
+			System.out.println("Connection closed by client at addr " + socket.getInetAddress());
+		} catch (IOException e) {
+			System.err.println("CLIENT... Comunication exception: " + e.getMessage());
+			e.printStackTrace(System.out);
+		}
+		
+
+	}
+	
+	public void closeServer() {
+		flag = true;
+	}
+	
+	public void startServer() {
+		servingThread= new Thread(this);
+		servingThread.start();
+	}
+	
+	public int getPort() {
+		if (serverSocket != null) {
+			return serverSocket.getLocalPort();
+		} else {
+			return 0;
+		}		
+	}
+
+}

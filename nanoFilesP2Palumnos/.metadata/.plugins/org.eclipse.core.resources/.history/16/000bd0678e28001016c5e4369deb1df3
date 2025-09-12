@@ -1,0 +1,453 @@
+package es.um.redes.nanoFiles.udp.message;
+
+import java.net.InetSocketAddress;
+import java.util.Arrays;
+import java.util.LinkedList;
+
+import es.um.redes.nanoFiles.util.FileInfo;
+
+/**
+ * Clase que modela los mensajes del protocolo de comunicación entre pares para
+ * implementar el explorador de ficheros remoto (servidor de ficheros). Estos
+ * mensajes son intercambiados entre las clases DirectoryServer y
+ * DirectoryConnector, y se codifican como texto en formato "campo:valor".
+ * 
+ * @author rtitos
+ *
+ */
+public class DirMessage {
+	public static final int PACKET_MAX_SIZE = 65507; // 65535 - 8 (UDP header) - 20 (IP header)
+
+	public static final char DELIMITER = ':'; // Define el delimitador
+	public static final char END_LINE = '\n'; // Define el carácter de fin de línea
+	public static final char FIELD_DELIMITER = '&';
+
+	/**
+	 * Nombre del campo que define el tipo de mensaje (primera línea)
+	 */
+	public static final String FIELDNAME_OPERATION = "operation";
+	/*
+	 * TODO: (Boletín MensajesASCII) Definir de manera simbólica los nombres de
+	 * todos los campos que pueden aparecer en los mensajes de este protocolo
+	 * (formato campo:valor)
+	 */
+
+	public static final String FIELDNAME_PROTOCOL = "protocol";
+	public static final String FIELDNAME_FILE = "file";
+	public static final String FIELDNAME_DIR = "dir";
+	public static final String TCP_PORT = "serverport";
+	public static final String FIELDNAME_HASH = "filehash";
+	public static final String FIELDNAME_NAME = "filename";
+	public static final String FIELDNAME_SIZE = "filesize";
+	public static final String FIELDNAME_TARGET = "target";
+	public static final String CANDIDATE_TCP_PORT = "candidatetcpport";
+	public static final String CANDIDATE_IP = "candidateip";
+	public static final String FIELDNAME_IP = "ipservidor";
+	public static final String FIELDNAME_TCP_PORT = "tcpportservidor";
+	public static final String QUIT_PORT = "quitport";
+
+	
+	/**
+	 * Tipo del mensaje, de entre los tipos definidos en PeerMessageOps.
+	 */
+	private String operation = DirMessageOps.OPERATION_INVALID;
+	/**
+	 * Identificador de protocolo usado, para comprobar compatibilidad del
+	 * directorio.
+	 */
+	private String protocolId;
+
+	// Cadena con las lista de files que tiene disponible un directorio.
+	// Se puede utilizar como lista de files que tiene un directorio o como lista de
+	// files que va a servir un peer.
+	private String fileList;
+
+	// Lista para almacenar direcciones IP, utilizado para un mensaje de respuesta
+	// de download para el
+	// que está disponible el file pedido en dicho mensaje download.
+	private LinkedList<InetSocketAddress> dirList = new LinkedList<InetSocketAddress>();
+
+	private String busqueda;
+
+	/*
+	 * TODO: (Boletín MensajesASCII) Crear un atributo correspondiente a cada uno de
+	 * los campos de los diferentes mensajes de este protocolo.
+	 */
+
+	private LinkedList<FileInfo> files = new LinkedList<FileInfo>();
+
+	// Esto es el puerto donde se espone para descargar
+	private int sourceTCPPort;
+
+	private int quitPort;
+	
+	// Usado para "Solicitud de ping"
+	public DirMessage(String op, String protocolId) {
+		this.operation = op;
+		this.protocolId = protocolId;
+	}
+
+	// Usado para "Solicitud de filelist" y "Respuesta de ping correcto/incorrecto"
+	public DirMessage(String op) {
+		this.operation = op;
+	}
+
+	// Usado para "Enviar la lista de files disponibles (directorio)" y "Servir
+	// files (peer)" y "Descargar file".
+	public DirMessage(String op, StringBuffer fileList) {
+		this.operation = op;
+		this.fileList = fileList.toString();
+	}
+
+	// Usado para "Respuesta de confirmación de file disponible".
+	public DirMessage(String op, InetSocketAddress[] dirList) {
+		this.operation = op;
+		this.dirList = new LinkedList<InetSocketAddress> (Arrays.asList(dirList));
+	}
+
+	/*
+	 * TODO: (Boletín MensajesASCII) Crear diferentes constructores adecuados para
+	 * construir mensajes de diferentes tipos con sus correspondientes argumentos
+	 * (campos del mensaje)
+	 */
+
+	// Getters
+	public String getOperation() {
+		return operation;
+	}
+
+	public String getProtocolId() {
+		return protocolId;
+	}
+
+	public LinkedList<FileInfo> getFileList() {
+		return this.files;
+	}
+
+	public LinkedList<InetSocketAddress> getDirList() {
+		return new LinkedList<InetSocketAddress>(dirList);
+	}
+
+	public int getSourceTCPPort() {
+		return sourceTCPPort;
+	}
+	
+	public String getBusqueda() {
+		return busqueda;
+	}
+	
+	public int getQuitPort() {
+		return quitPort;
+	}
+	
+	/*
+	 * TODO: (Boletín MensajesASCII) Crear métodos getter y setter para obtener los
+	 * valores de los atributos de un mensaje. Se aconseja incluir código que
+	 * compruebe que no se modifica/obtiene el valor de un campo (atributo) que no
+	 * esté definido para el tipo de mensaje dado por "operation".
+	 */
+
+	// Setters
+	public void setProtocolID(String protocolIdent) {
+		if (!operation.equals(DirMessageOps.OPERATION_PING)) {
+			throw new RuntimeException(
+					"DirMessage: setProtocolId called for message of unexpected type (" + operation + ")");
+		}
+		protocolId = protocolIdent;
+	}
+
+	public void setOperation(String op) {
+		this.operation = op;
+	}
+
+	public void setFileList(String fileList) {
+		if (!operation.equals(DirMessageOps.OPERATION_FILELIST)) {
+			throw new RuntimeException(
+					"DirMessage: setFileList called for message of unexpected type (" + operation + ")");
+		}
+		this.fileList = fileList;
+	}
+
+	public void setDirList(LinkedList<InetSocketAddress> dirList) {
+		if (!operation.equals(DirMessageOps.OPERATION_SEARCH_SUCCESS)) {
+			throw new RuntimeException(
+					"DirMessage: setDirList called for message of unexpected type (" + operation + ")");
+		}
+		this.dirList = dirList;
+	}
+
+	public void setSourceTCPPort(int sourceTCPPort) {
+		if (!operation.equals(DirMessageOps.OPERATION_SERVE)) {
+			throw new RuntimeException(
+					"DirMessage: setSourceTCPPort called for message of unexpected type (" + operation + ")");
+		}
+		this.sourceTCPPort = sourceTCPPort;
+	}
+
+	public void addFileInfo(FileInfo fi) {
+		if (!operation.equals(DirMessageOps.OPERATION_SERVE)
+				&& !operation.equals(DirMessageOps.OPERATION_FILELIST_RESPONSE)) {
+			throw new RuntimeException(
+					"DirMessage: addFileInfo called for message of unexpected type (" + operation + ")");
+		}
+		this.files.add(fi);
+	}
+
+	public void setTarget(String tg) {
+		if (!operation.equals(DirMessageOps.OPERATION_SEARCH)) {
+			throw new RuntimeException(
+					"DirMessage: setTarget called for message of unexpected type (" + operation + ")");
+		}
+		this.busqueda = tg;
+	}
+	
+	public void addDirList(InetSocketAddress dirList) {
+		if (!operation.equals(DirMessageOps.OPERATION_SEARCH_SUCCESS)) {
+			throw new RuntimeException(
+					"DirMessage: addDirList called for message of unexpected type (" + operation + ")");
+		}
+		this.dirList.add(dirList);
+	}
+	
+	
+	public void setQuitPort(int quitPort) {
+		if (!operation.equals(DirMessageOps.OPERATION_QUIT)) {
+			throw new RuntimeException(
+					"DirMessage: setQuitPort called for message of unexpected type (" + operation + ")");
+		}
+		this.quitPort = quitPort;
+	}
+
+	/**
+	 * Método que convierte un mensaje codificado como una cadena de caracteres, a
+	 * un objeto de la clase PeerMessage, en el cual los atributos correspondientes
+	 * han sido establecidos con el valor de los campos del mensaje.
+	 * 
+	 * @param message El mensaje recibido por el socket, como cadena de caracteres
+	 * @return Un objeto PeerMessage que modela el mensaje recibido (tipo, valores,
+	 *         etc.)
+	 */
+	public static DirMessage fromString(String message) {
+		/*
+		 * TODO: (Boletín MensajesASCII) Usar un bucle para parsear el mensaje línea a
+		 * línea, extrayendo para cada línea el nombre del campo y el valor, usando el
+		 * delimitador DELIMITER, y guardarlo en variables locales.
+		 */
+
+		// System.out.println("DirMessage read from socket:");
+		// System.out.println(message);
+		String[] lines = message.split(END_LINE + "");
+		// Local variables to save data during parsing
+		DirMessage m = null;
+
+		FileInfo fi = null;
+		String ip = null;
+		
+		for (String line : lines) {
+			int idx = line.indexOf(DELIMITER); // Posición del delimitador
+
+			String fieldName = line.substring(0, idx).toLowerCase(); // minúsculas
+			String value = line.substring(idx + 1).trim();
+
+			switch (fieldName) {
+			case FIELDNAME_OPERATION: {
+				assert (m == null);
+				m = new DirMessage(value);
+				break;
+			}
+			case FIELDNAME_PROTOCOL: {
+				m.setProtocolID(value);
+				// También se podría hacer así.
+				// m.protocolId = value;
+				break;
+			}
+			case TCP_PORT: {
+				m.setSourceTCPPort(Integer.parseInt(value));
+				break;
+			}
+			case FIELDNAME_HASH: {
+				fi = new FileInfo();
+				fi.fileHash = value;
+				break;
+			}
+			case FIELDNAME_NAME: {
+				fi.fileName = value;
+				break;
+			}
+			case FIELDNAME_SIZE: {
+				fi.fileSize = Long.parseLong(value);
+				m.addFileInfo(fi);
+				break;
+			}
+			case FIELDNAME_IP: {
+				ip = value;
+				break;
+			}
+			case FIELDNAME_TCP_PORT: {
+				fi.servidores.add(new InetSocketAddress(ip, Integer.parseInt(value)));
+				break;
+			}
+			case FIELDNAME_TARGET: {
+				m.setTarget(value);
+				break;
+			}
+			case CANDIDATE_IP: {
+				ip = value;
+				break;
+			}
+			case CANDIDATE_TCP_PORT: {
+				m.addDirList(new InetSocketAddress(ip, Integer.parseInt(value)));
+				break;
+			}
+			case QUIT_PORT: {
+				m.setQuitPort(Integer.parseInt(value));
+				break;
+			}
+
+			default:
+				System.err.println("PANIC: DirMessage.fromString - message with unknown field name " + fieldName);
+				System.err.println("Message was:\n" + message);
+				System.exit(-1);
+			}
+		}
+
+		return m;
+	}
+
+	/**
+	 * Método que devuelve una cadena de caracteres con la codificación del mensaje
+	 * según el formato campo:valor, a partir del tipo y los valores almacenados en
+	 * los atributos.
+	 * 
+	 * @return La cadena de caracteres con el mensaje a enviar por el socket.
+	 */
+
+	@Override
+	public String toString() {
+		StringBuffer sb = new StringBuffer();
+
+		sb.append(FIELDNAME_OPERATION + DELIMITER + operation + END_LINE);
+
+		switch (operation) {
+		case DirMessageOps.OPERATION_PING: {
+			if (protocolId != null) {
+				sb.append(FIELDNAME_PROTOCOL + DELIMITER + protocolId + END_LINE);
+			} else {
+				System.err.println("ERROR: protocolId is null in PING message.");
+			}
+			break;
+		}
+
+		case DirMessageOps.OPERATION_PING_OK:
+		case DirMessageOps.OPERATION_PING_NOK:
+		case DirMessageOps.OPERATION_FILELIST:
+		case DirMessageOps.OPERATION_SERVE_SUCCESS:
+		case DirMessageOps.OPERATION_QUIT_SUCCESS:
+		case DirMessageOps.OPERATION_SEARCH_UNSUCCESS:
+		{
+			break;
+		}
+
+		case DirMessageOps.OPERATION_FILELIST_RESPONSE: {
+			if (files != null) {
+				for (FileInfo fi : files) {
+					sb.append(FIELDNAME_HASH + DELIMITER + fi.fileHash + END_LINE);
+					sb.append(FIELDNAME_NAME + DELIMITER + fi.fileName + END_LINE);
+					sb.append(FIELDNAME_SIZE + DELIMITER + fi.fileSize + END_LINE);
+					for (InetSocketAddress con : fi.servidores)  {
+						sb.append(FIELDNAME_IP + DELIMITER + con.getAddress() + END_LINE);
+						sb.append(FIELDNAME_TCP_PORT + DELIMITER + con.getPort() + END_LINE);
+					}
+				}
+
+			} else {
+				System.err.println("Error: serve hasn't got the fields well-defined");
+			}
+			break;
+		}
+		case DirMessageOps.OPERATION_SERVE: {
+			if (files != null && files.size() != 0) {
+				sb.append(TCP_PORT + DELIMITER + sourceTCPPort + END_LINE);
+				for (FileInfo fi : files) {
+					sb.append(FIELDNAME_HASH + DELIMITER + fi.fileHash + END_LINE);
+					sb.append(FIELDNAME_NAME + DELIMITER + fi.fileName + END_LINE);
+					sb.append(FIELDNAME_SIZE + DELIMITER + fi.fileSize + END_LINE);
+				}
+
+			} else {
+				System.err.println("Error: serve hasn't got the fields well-defined");
+			}
+			break;
+		}
+		case DirMessageOps.OPERATION_DOWNLOAD_RESPONSE: {
+			if (files != null) {
+				for (FileInfo fi : files) {
+					sb.append(FIELDNAME_HASH + DELIMITER + fi.fileHash + END_LINE);
+					sb.append(FIELDNAME_NAME + DELIMITER + fi.fileName + END_LINE);
+					sb.append(FIELDNAME_SIZE + DELIMITER + fi.fileSize + END_LINE);
+				}
+
+			} else {
+				System.err.println("Error: search hasn't got the fields well-defined");
+			}
+			break;
+		}	
+		case DirMessageOps.OPERATION_DOWNLOAD: {
+			if (fileList != null && !fileList.isEmpty()) {
+				sb.append(FIELDNAME_OPERATION + DELIMITER + fileList + END_LINE);
+			} else {
+				System.err.println("ERROR: fileList (fileName) is null or empty in download message.");
+			}
+			break;
+		}
+
+//	        case DirMessageOps.OPERATION_DOWNLOAD_RESPONSE: {
+//	            if (dirList != null && dirList.length > 0) {
+//	                for (InetSocketAddress address : dirList) {
+//	                    String ip = address.getAddress().getHostAddress();
+//	                    int port = address.getPort();
+//	            	    sb.append(FIELDNAME_OPERATION + DELIMITER + ip + FIELD_DELIMITER + port + END_LINE);
+//	                }
+//	            } else {
+//	                System.err.println("WARNING: dirList is empty in fileAvailable message.");
+//	            }
+//	            break;
+//	        }
+
+		case DirMessageOps.OPERATION_SEARCH: {
+			if (busqueda != null && busqueda.length() > 0) {
+				sb.append(FIELDNAME_TARGET + DELIMITER + busqueda + END_LINE);
+			} else {
+				System.err.println("WARNING: dirList is empty in fileAvailable message.");
+			}
+			break;
+		}
+
+		case DirMessageOps.OPERATION_SEARCH_SUCCESS: {
+			if (dirList != null && dirList.size() > 0) {
+				for (InetSocketAddress it : dirList) {
+					sb.append(CANDIDATE_IP + DELIMITER + it.getHostString() + END_LINE);
+					sb.append(CANDIDATE_TCP_PORT + DELIMITER + it.getPort() + END_LINE);
+				}
+			
+			} else {
+				System.err.println("WARNING: dirList is empty in fileAvailable message.");
+			}
+			break;
+		}
+		
+		case DirMessageOps.OPERATION_QUIT: {
+			sb.append(QUIT_PORT + DELIMITER + quitPort + END_LINE);
+			break;
+		}
+		default: {
+			System.err.println("ERROR: DirMessage.toString() - Unknown operation: " + operation);
+			break;
+		}
+		}
+
+		sb.append(END_LINE);
+		return sb.toString();
+	}
+
+}

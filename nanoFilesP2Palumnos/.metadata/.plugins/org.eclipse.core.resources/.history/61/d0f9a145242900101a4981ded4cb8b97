@@ -1,0 +1,266 @@
+package es.um.redes.nanoFiles.tcp.client;
+
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.net.UnknownHostException;
+import java.util.concurrent.Semaphore;
+
+import es.um.redes.nanoFiles.tcp.message.PeerMessage;
+import es.um.redes.nanoFiles.tcp.message.PeerMessageOps;
+import es.um.redes.nanoFiles.util.FileInfo;
+
+//Esta clase proporciona la funcionalidad necesaria para intercambiar mensajes entre el cliente y el servidor
+public class NFConnector extends Thread implements Runnable {
+	private Socket socket;
+	private InetSocketAddress serverAddr;
+
+	public static final int MAX_CHUNK_SIZE = 1024;
+
+	DataInputStream dis = null;
+	DataOutputStream dos = null;
+
+	// Argumentos progamación paralela
+	public static int NUM_THREADS_WAITING;
+	public static boolean AMBIGUO = false;
+	public static RandomAccessFile FICHERO = null;
+	public static long GLOBAL_OFFSET = 0;
+
+	public Semaphore parent_signal;
+	public Semaphore barrier;
+	private FileInfo respuestaFichero;
+	private String fileRequest;
+
+	private int chunkRecibido = 0;
+	private int byteRecibido = 0;
+
+	public NFConnector(InetSocketAddress fserverAddr) throws UnknownHostException, IOException {
+		serverAddr = fserverAddr;
+		/*
+		 * TODO: (Boletín SocketsTCP) Se crea el socket a partir de la dirección del
+		 * servidor (IP, puerto). La creación exitosa del socket significa que la
+		 * conexión TCP ha sido establecida.
+		 */
+
+		socket = new Socket(serverAddr.getAddress(), serverAddr.getPort());
+
+		/*
+		 * TODO: (Boletín SocketsTCP) Se crean los DataInputStream/DataOutputStream a
+		 * partir de los streams de entrada/salida del socket creado. Se usarán para
+		 * enviar (dos) y recibir (dis) datos del servidor.
+		 */
+
+		dis = new DataInputStream(socket.getInputStream());
+		dos = new DataOutputStream(socket.getOutputStream());
+
+	}
+
+	public void test() {
+		/*
+		 * TODO: (Boletín SocketsTCP) Enviar entero cualquiera a través del socket y
+		 * después recibir otro entero, comprobando que se trata del mismo valor.
+		 */
+
+		try {
+//			int integerToSend = 1;
+//	        System.out.println("CLIENT... Sending... " + integerToSend);
+//	        dos.writeInt(integerToSend);
+//	        
+//	        int integerReceived = dis.readInt();
+//	        System.out.println("CLIENT... Integer received: " + integerReceived);
+
+			PeerMessage msgOut, msgIn;
+			String fileName = "ANEXO I definitivo.docx";
+			byte longFileName = (byte) fileName.length();
+			msgOut = new PeerMessage(PeerMessageOps.OPCODE_DOWNLOAD_FILE, longFileName, fileName);
+			msgOut.writeMessageToOutputStream(dos);
+			msgIn = PeerMessage.readMessageFromInputStream(dis);
+			System.out.println("CLIENT... Message received: " + PeerMessageOps.opcodeToOperation(msgIn.getOpcode()));
+			if (msgIn.getOpcode() == PeerMessageOps.OPCODE_FILE_METADATA) {
+				System.out.println("File size: " + msgIn.getFileSize());
+				System.out.println("File hash: " + msgIn.getFileHash());
+			}
+			socket.close();
+
+		} catch (IOException e) {
+
+			System.err.println("CLIENT... Comunication exception: " + e.getMessage());
+		}
+
+	}
+
+	public FileInfo acordarFicherosDownload(String fileName) {
+		PeerMessage msgOut, msgIn;
+		FileInfo fi = null;
+		msgOut = new PeerMessage(PeerMessageOps.OPCODE_DOWNLOAD_FILE, (byte) fileName.length(), fileName);
+		try {
+			msgOut.writeMessageToOutputStream(dos);
+			msgIn = PeerMessage.readMessageFromInputStream(dis);
+			if (msgIn.getOpcode() == PeerMessageOps.OPCODE_AMBIGUOUS_NAME
+					|| msgIn.getOpcode() == PeerMessageOps.OPCODE_FILE_NOT_FOUND) {
+				System.err.println("Fichero ambiguo o no encontrado");
+			} else {
+				fi = new FileInfo(msgIn.getFileHash(), msgIn.getFileName(), msgIn.getFileSize(), "");
+			}
+
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		return fi;
+	}
+
+	public void downloadChunk(long offset, String fileHash, long fileSize) {
+		try {
+			PeerMessage msgOut, msgIn;
+			int chunkSize = MAX_CHUNK_SIZE;
+			if (fileSize - offset < MAX_CHUNK_SIZE) {
+				chunkSize = (int) (fileSize - offset);
+			}
+			msgOut = new PeerMessage(PeerMessageOps.OPCODE_GET_CHUNK, fileSize, fileHash);
+			msgOut.setChunkSize(chunkSize);
+			msgOut.setFileOffset(offset);
+			msgOut.writeMessageToOutputStream(dos);
+			msgIn = PeerMessage.readMessageFromInputStream(dis);
+			if (msgIn.getOpcode() == PeerMessageOps.OPCODE_RECEIVE_CHUNK) {
+				writeFile(offset, msgIn.getContenido());
+				chunkRecibido++;
+				byteRecibido += msgIn.getContenido().length;
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+	}
+
+	public boolean uploadFile(FileInfo matchingFile) {
+		boolean success = false;
+		try {
+			PeerMessage msgOut, msgIn;
+			msgOut = new PeerMessage(PeerMessageOps.OPCODE_UPLOAD_FILE, matchingFile.fileSize, matchingFile.fileHash);
+			msgOut.setLongFileName((byte) matchingFile.fileName.length());
+			msgOut.setFileName(matchingFile.fileName);
+			msgOut.writeMessageToOutputStream(dos);
+			msgIn = PeerMessage.readMessageFromInputStream(dis);
+			switch (msgIn.getOpcode()) {
+			case PeerMessageOps.OPCODE_FILE_FOUND: {
+				System.err.println("El fichero ya esta en el servidor");
+				break;
+			}
+			case PeerMessageOps.OPCODE_FILE_NOT_FOUND: {
+				DataInputStream fis = new DataInputStream(new FileInputStream(matchingFile.filePath));
+				for (long i = 0; i < matchingFile.fileSize; i += MAX_CHUNK_SIZE) {
+					int chunkSize = MAX_CHUNK_SIZE;
+					if (matchingFile.fileSize - i < MAX_CHUNK_SIZE) {
+						chunkSize = (int) (matchingFile.fileSize - i);
+					}
+					msgOut = new PeerMessage(PeerMessageOps.OPCODE_SEND_CHUNK);
+					msgOut.setChunkSize(chunkSize);
+					byte[] contenido = new byte[chunkSize];
+					fis.read(contenido);
+					msgOut.setContenido(contenido);
+					msgOut.writeMessageToOutputStream(dos);
+				}
+				success = true;
+				fis.close();
+				break;
+			}
+			default:
+				throw new IllegalArgumentException("Unexpected value: " + msgIn.getOpcode());
+			}
+			socket.close();
+
+		} catch (IOException e) {
+			System.err.println("CLIENT... Comunication exception: " + e.getMessage());
+		}
+		return success;
+	}
+
+	public InetSocketAddress getServerAddr() {
+		return serverAddr;
+	}
+
+	public void closeConnection() {
+		try {
+			socket.close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+
+	// *************************************
+	// * Programación paralela de download *
+	// *************************************
+
+	public int getByteRecibido() {
+		return byteRecibido;
+	}
+
+	public int getChunkRecibido() {
+		return chunkRecibido;
+	}
+
+	synchronized int reduceNumberThreadsWaiting() {
+		NUM_THREADS_WAITING--;
+		return NUM_THREADS_WAITING;
+	}
+
+	public FileInfo getRespuestaFichero() {
+		return respuestaFichero;
+	}
+
+	public void setFileRequest(String fileRequest) {
+		this.fileRequest = fileRequest;
+	}
+
+	synchronized long getOffset() {
+		long offset = GLOBAL_OFFSET;
+		GLOBAL_OFFSET += NFConnector.MAX_CHUNK_SIZE;
+		return offset;
+	}
+
+	synchronized void writeFile(long offset, byte[] contenido) {
+		System.err.println(offset);
+		System.err.println(contenido[0] + " " + contenido[1] + " " + contenido[2] + " " + contenido[3]);
+		try {
+			FICHERO.seek(offset);
+			FICHERO.write(contenido);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+	}
+
+	public void run() {
+		respuestaFichero = acordarFicherosDownload(fileRequest);
+
+		if (reduceNumberThreadsWaiting() == 0)
+			parent_signal.release();
+		try {
+			barrier.acquire();
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		if (AMBIGUO == false) {
+			long offset = getOffset();
+			while (offset < respuestaFichero.fileSize) {
+				System.err.println(threadId() + " - " +  offset);
+				downloadChunk(offset, respuestaFichero.fileHash, respuestaFichero.fileSize);
+				offset = getOffset();
+			}
+			System.err.println(threadId() + " - " +  offset);
+		}
+		closeConnection();
+	}
+
+}

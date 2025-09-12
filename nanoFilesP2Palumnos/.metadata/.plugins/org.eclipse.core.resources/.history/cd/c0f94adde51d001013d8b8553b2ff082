@@ -1,0 +1,14 @@
+package es.um.redes.nanoFiles.tcp.client;
+
+import java.net.Socket;
+
+public class NFConnectorThread extends Thread{
+
+	private Socket socket;
+	
+	public NFConnectorThread(Socket newSocket) {
+		socket = newSocket;
+	}
+	
+	
+}

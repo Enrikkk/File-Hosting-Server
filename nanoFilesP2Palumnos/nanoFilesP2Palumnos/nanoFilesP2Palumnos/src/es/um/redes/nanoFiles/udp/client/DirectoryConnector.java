@@ -1,0 +1,508 @@
+package es.um.redes.nanoFiles.udp.client;
+
+import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.SocketTimeoutException;
+import java.util.Arrays;
+
+import es.um.redes.nanoFiles.application.NanoFiles;
+import es.um.redes.nanoFiles.udp.message.DirMessage;
+import es.um.redes.nanoFiles.udp.message.DirMessageOps;
+import es.um.redes.nanoFiles.util.FileInfo;
+
+/**
+ * Cliente con métodos de consulta y actualización específicos del directorio
+ */
+public class DirectoryConnector {
+	/**
+	 * Puerto en el que atienden los servidores de directorio
+	 */
+	private static final int DIRECTORY_PORT = 6868;
+	/**
+	 * Tiempo máximo en milisegundos que se esperará a recibir una respuesta por el
+	 * socket antes de que se deba lanzar una excepción SocketTimeoutException para
+	 * recuperar el control
+	 */
+	private static final int TIMEOUT = 1000;
+	/**
+	 * Número de intentos máximos para obtener del directorio una respuesta a una
+	 * solicitud enviada. Cada vez que expira el timeout sin recibir respuesta se
+	 * cuenta como un intento.
+	 */
+	private static final int MAX_NUMBER_OF_ATTEMPTS = 5;
+
+	/**
+	 * Socket UDP usado para la comunicación con el directorio
+	 */
+	private DatagramSocket socket;
+	/**
+	 * Dirección de socket del directorio (IP:puertoUDP)
+	 */
+	private InetSocketAddress directoryAddress;
+	/**
+	 * Nombre/IP del host donde se ejecuta el directorio
+	 */
+	private String directoryHostname;
+
+	public DirectoryConnector(String hostname) throws IOException {
+		// Guardamos el string con el nombre/IP del host
+		directoryHostname = hostname;
+		/*
+		 * TODO: (Boletín SocketsUDP) Convertir el string 'hostname' a InetAddress y
+		 * guardar la dirección de socket (address:DIRECTORY_PORT) del directorio en el
+		 * atributo directoryAddress, para poder enviar datagramas a dicho destino.
+		 */
+
+		// Convertimos el string hotname a InetAddress.
+		InetAddress dirHost = InetAddress.getByName(hostname);
+
+		// Guardamos la dirección de socket del directorio en el atributo
+		// directoryAddress, así
+		// podremos enviar datagramas a ese destino.
+		this.directoryAddress = new InetSocketAddress(dirHost, DIRECTORY_PORT);
+
+		/*
+		 * TODO: (Boletín SocketsUDP) Crea el socket UDP en cualquier puerto para enviar
+		 * datagramas al directorio
+		 */
+
+		// Creamos el socket UDP en cualquier puerto disponible.
+		// El constructor por defecto escoge cualquier puerto disponible.
+		this.socket = new DatagramSocket();
+
+	}
+
+	/**
+	 * Método para enviar y recibir datagramas al/del directorio
+	 * 
+	 * @param requestData los datos a enviar al directorio (mensaje de solicitud)
+	 * @return los datos recibidos del directorio (mensaje de respuesta)
+	 */
+	private byte[] sendAndReceiveDatagrams(byte[] requestData) {
+		byte responseData[] = new byte[DirMessage.PACKET_MAX_SIZE];
+		byte response[] = null;
+		if (directoryAddress == null) {
+			System.err.println("DirectoryConnector.sendAndReceiveDatagrams: UDP server destination address is null!");
+			System.err.println(
+					"DirectoryConnector.sendAndReceiveDatagrams: make sure constructor initializes field \"directoryAddress\"");
+			System.exit(-1);
+
+		}
+		if (socket == null) {
+			System.err.println("DirectoryConnector.sendAndReceiveDatagrams: UDP socket is null!");
+			System.err.println(
+					"DirectoryConnector.sendAndReceiveDatagrams: make sure constructor initializes field \"socket\"");
+			System.exit(-1);
+		}
+		/*
+		 * TODO: (Boletín SocketsUDP) Enviar datos en un datagrama al directorio y
+		 * recibir una respuesta. El array devuelto debe contener únicamente los datos
+		 * recibidos, *NO* el búfer de recepción al completo.
+		 */
+
+		// IMPLEMENTACIÓN BÁSICA
+		// En este primer apartado de la función, hacemos la funcionalidad básica,
+		// asumiento que no
+		// hay pérdida de paquetes. En el siguiente apartado vamos a hacer lo mismo pero
+		// con un
+		// mecanismo basado en timers, para asegurarnos de que el paquete enviado se
+		// recibe correctamente.
+
+		/*
+		 * // Paquete con los datos. DatagramPacket packet = new
+		 * DatagramPacket(requestData, requestData.length, this.directoryAddress);
+		 * 
+		 * // Enviar el paquete al directorio. try { socket.send(packet); } catch
+		 * (IOException e) { // TODO Auto-generated catch block e.printStackTrace(); }
+		 * 
+		 * // Creamos un paquete en el que guardar la respuesta. DatagramPacket
+		 * msgResponse = new DatagramPacket(responseData, responseData.length);
+		 * 
+		 * // Recibimos la respuesta. try { socket.receive(msgResponse); } catch
+		 * (IOException e) { // TODO Auto-generated catch block e.printStackTrace(); }
+		 */
+
+		/*
+		 * TODO: (Boletín SocketsUDP) Una vez el envío y recepción asumiendo un canal
+		 * confiable (sin pérdidas) esté terminado y probado, debe implementarse un
+		 * mecanismo de retransmisión usando temporizador, en caso de que no se reciba
+		 * respuesta en el plazo de TIMEOUT. En caso de salte el timeout, se debe volver
+		 * a enviar el datagrama y tratar de recibir respuestas, reintentando como
+		 * máximo en MAX_NUMBER_OF_ATTEMPTS ocasiones.
+		 */
+
+		// Variable booleana para ver si se ha recibido el paquete con éxito.
+		boolean recibido = false;
+
+		for (int i = 0; i < MAX_NUMBER_OF_ATTEMPTS && !recibido; ++i) {
+			// Paquete con los datos.
+			DatagramPacket packet = new DatagramPacket(requestData, requestData.length, this.directoryAddress);
+
+			// Enviar el paquete al directorio.
+			try {
+				socket.send(packet);
+			} catch (IOException e) {
+				System.err.println("Se ha producido un error de entrada/salida enviando el paquete al directorio.");
+				e.printStackTrace();
+				System.exit(-1);
+			}
+
+			// Creamos un paquete en el que guardar la respuesta.
+			DatagramPacket msgResponse = new DatagramPacket(responseData, responseData.length);
+
+			// Recibimos la respuesta.
+			try {
+				socket.setSoTimeout(TIMEOUT);
+				socket.receive(msgResponse);
+				recibido = true;
+
+				response = Arrays.copyOf(msgResponse.getData(), msgResponse.getLength());
+			} catch (SocketTimeoutException s) {
+				System.out.println("En intento de enviar el paquete número " + i
+						+ " ha fallado, se ha completado el tiempo de timeout.");
+			} catch (IOException e) {
+				System.err.println("Se ha producido un error de entrada/salida recibiendo el paquete del directorio.");
+				e.printStackTrace();
+			}
+		}
+
+		/*
+		 * TODO: (Boletín SocketsUDP) Las excepciones que puedan lanzarse al
+		 * leer/escribir en el socket deben ser capturadas y tratadas en este método. Si
+		 * se produce una excepción de entrada/salida (error del que no es posible
+		 * recuperarse), se debe informar y terminar el programa.
+		 */
+
+		// Interrupciones ya tratadas en el código de arriba.
+
+		/*
+		 * NOTA: Las excepciones deben tratarse de la más concreta a la más genérica.
+		 * SocketTimeoutException es más concreta que IOException.
+		 */
+
+		if (response != null && response.length == responseData.length) {
+			System.err.println("Your response is as large as the datagram reception buffer!!\n"
+					+ "You must extract from the buffer only the bytes that belong to the datagram!");
+		}
+		return response;
+	}
+
+	/**
+	 * Método para probar la comunicación con el directorio mediante el envío y
+	 * recepción de mensajes sin formatear ("en crudo")
+	 * 
+	 * @return verdadero si se ha enviado un datagrama y recibido una respuesta
+	 */
+	public boolean testSendAndReceive() {
+		/*
+		 * TODO: (Boletín SocketsUDP) Probar el correcto funcionamiento de
+		 * sendAndReceiveDatagrams. Se debe enviar un datagrama con la cadena "ping" y
+		 * comprobar que la respuesta recibida empieza por "pingok". En tal caso,
+		 * devuelve verdadero, falso si la respuesta no contiene los datos esperados.
+		 */
+
+		// Primera forma de hacerlo.
+		boolean success = false;
+		byte[] requestData = new String("ping").getBytes();
+		byte[] response = sendAndReceiveDatagrams(requestData);
+		String receivedMessage = new String();
+		if (response != null) {
+			receivedMessage = new String(response, 0, response.length);
+		}
+		System.out.println("Receiving... " + receivedMessage);
+		if (receivedMessage.startsWith("pingok")) {
+			success = true;
+		}
+
+		return success;
+
+		// Segunda forma de hacerlo.
+		/*
+		 * String cadena = "ping"; byte[] respuestaArray =
+		 * sendAndReceiveDatagrams(cadena.getBytes()); String respuestaCadena = new
+		 * String();
+		 * 
+		 * if(respuestaArray != null) { respuestaCadena = new String(respuestaArray, 0,
+		 * respuestaArray.length); }
+		 * 
+		 * System.out.println("Recibiendo... " + respuestaCadena);
+		 * 
+		 * if(respuestaCadena.startsWith("pingok")) return true; else return false;
+		 */
+
+	}
+
+	public String getDirectoryHostname() {
+		return directoryHostname;
+	}
+
+	/**
+	 * Método para "hacer ping" al directorio, comprobar que está operativo y que
+	 * usa un protocolo compatible. Este método no usa mensajes bien formados.
+	 * 
+	 * @return Verdadero si
+	 */
+	public boolean pingDirectoryRaw() {
+		boolean success = false;
+		/*
+		 * TODO: (Boletín EstructuraNanoFiles) Basándose en el código de
+		 * "testSendAndReceive", contactar con el directorio, enviándole nuestro
+		 * PROTOCOL_ID (ver clase NanoFiles). Se deben usar mensajes "en crudo" (sin un
+		 * formato bien definido) para la comunicación.
+		 * 
+		 * PASOS: 1.Crear el mensaje a enviar (String "ping&protocolId"). 2.Crear un
+		 * datagrama con los bytes en que se codifica la cadena : 4.Enviar datagrama y
+		 * recibir una respuesta (sendAndReceiveDatagrams). : 5. Comprobar si la cadena
+		 * recibida en el datagrama de respuesta es "welcome", imprimir si éxito o
+		 * fracaso. 6.Devolver éxito/fracaso de la operación.
+		 */
+
+		String cadena = "ping&" + NanoFiles.PROTOCOL_ID;
+		System.out.println(cadena);
+		byte[] respuestaArray = sendAndReceiveDatagrams(cadena.getBytes());
+		String respuestaCadena = new String();
+
+		if (respuestaArray != null) {
+			respuestaCadena = new String(respuestaArray, 0, respuestaArray.length);
+		}
+
+		System.out.println("Recibiendo... " + respuestaCadena);
+
+		if (respuestaCadena.equals("welcome")) {
+			System.out.println("Éxito, se ha recibido la cadena welcome.");
+			success = true;
+		} else {
+			System.err.println(
+					"Fracaso, se ha recibido una cadena distina a welcome.\nEsta cadena es: " + respuestaCadena);
+		}
+		return success;
+
+		/*
+		 * String cadena = "ping"; byte[] respuestaArray =
+		 * sendAndReceiveDatagrams(cadena.getBytes()); String respuestaCadena = new
+		 * String();
+		 * 
+		 * if(respuestaArray != null) { respuestaCadena = new String(respuestaArray, 0,
+		 * respuestaArray.length); }
+		 * 
+		 * System.out.println("Recibiendo... " + respuestaCadena);
+		 * 
+		 * if(respuestaCadena.startsWith("pingok")) return true; else return false;
+		 */
+
+		// return success;
+	}
+
+	/**
+	 * Método para "hacer ping" al directorio, comprobar que está operativo y que es
+	 * compatible.
+	 * 
+	 * @return Verdadero si el directorio está operativo y es compatible
+	 */
+	public boolean pingDirectory() {
+		boolean success = false;
+		/*
+		 * TODO: (Boletín MensajesASCII) Hacer ping al directorio 1.Crear el mensaje a
+		 * enviar (objeto DirMessage) con atributos adecuados (operation, etc.) NOTA:
+		 * Usar como operaciones las constantes definidas en la clase DirMessageOps :
+		 * 2.Convertir el objeto DirMessage a enviar a un string (método toString)
+		 * 3.Crear un datagrama con los bytes en que se codifica la cadena : 4.Enviar
+		 * datagrama y recibir una respuesta (sendAndReceiveDatagrams). : 5.Convertir
+		 * respuesta recibida en un objeto DirMessage (método DirMessage.fromString)
+		 * 6.Extraer datos del objeto DirMessage y procesarlos 7.Devolver éxito/fracaso
+		 * de la operación
+		 */
+
+		try {
+			DirMessage pingMessage = new DirMessage(DirMessageOps.OPERATION_PING, NanoFiles.PROTOCOL_ID);
+			String pingMessageAsString = pingMessage.toString();
+			byte[] requestData = pingMessageAsString.getBytes();
+			byte[] response = sendAndReceiveDatagrams(requestData);
+
+			if (response != null) {
+				String responseAsString = new String(response, 0, response.length);
+				System.out.println("Receiving... " + responseAsString);
+
+				DirMessage msgFromServer = DirMessage.fromString(responseAsString);
+				if (msgFromServer != null && msgFromServer.getOperation().equals(DirMessageOps.OPERATION_PING_OK)) {
+					success = true;
+					System.out.println("PingOK received - success.");
+				} else
+					System.out.println("PingNOK received - not accepted.");
+			}
+		} catch (Exception e) {
+			System.err.println("Error during ping: " + e.getMessage());
+			e.printStackTrace();
+		}
+		return success;
+	}
+
+	/**
+	 * Método para dar de alta como servidor de ficheros en el puerto indicado y
+	 * publicar los ficheros que este peer servidor está sirviendo.
+	 * 
+	 * @param serverPort El puerto TCP en el que este peer sirve ficheros a otros
+	 * @param files      La lista de ficheros que este peer está sirviendo.
+	 * @return Verdadero si el directorio tiene registrado a este peer como servidor
+	 *         y acepta la lista de ficheros, falso en caso contrario.
+	 */
+	public boolean registerFileServer(int serverPort, FileInfo[] files) {
+		boolean success = false;
+
+		// TODO: Ver TODOs en pingDirectory y seguir esquema similar
+		
+		//1) Enviamos la IP/PORT con serverRequest
+		try {
+			DirMessage publishDirMessage = new DirMessage(DirMessageOps.OPERATION_SERVE);
+			publishDirMessage.setSourceTCPPort(serverPort);
+			for(FileInfo fi : files) {
+				publishDirMessage.addFileInfo(fi);
+			}
+			String publishDirMessageAsString = publishDirMessage.toString();
+			byte[] requestData = publishDirMessageAsString.getBytes();
+			byte[] response = sendAndReceiveDatagrams(requestData);
+			
+			if (response != null) {
+				String responseAsString = new String(response, 0, response.length);
+				System.out.println("Receiving... " + responseAsString);
+
+				DirMessage msgFromServer = DirMessage.fromString(responseAsString);
+				if (msgFromServer != null && msgFromServer.getOperation().equals(DirMessageOps.OPERATION_SERVE_SUCCESS)) {
+					System.out.println("ServeSuccess received - success.");
+					success = true;
+				} else {
+					System.out.println("ServeSuccess received - not accepted.");
+				}
+			}
+		}catch (Exception e){
+			System.err.println("Error during serve: " + e.getMessage());
+			e.printStackTrace();
+		};
+		
+		//4) Enviamos un terminar enviar ficheros
+		//5) Recibimos un serve final
+		return success;		
+	}
+
+	/**
+	 * Método para obtener la lista de ficheros que los peers servidores han
+	 * publicado al directorio. Para cada fichero se debe obtener un objeto FileInfo
+	 * con nombre, tamaño y hash. Opcionalmente, puede incluirse para cada fichero,
+	 * su lista de peers servidores que lo están compartiendo.
+	 * 
+	 * @return Los ficheros publicados al directorio, o null si el directorio no
+	 *         pudo satisfacer nuestra solicitud
+	 */
+	public FileInfo[] getFileList() {
+
+	// TODO: Ver TODOs en pingDirectory y seguir esquema similar
+
+		
+		try {
+			DirMessage publishDirMessage = new DirMessage(DirMessageOps.OPERATION_FILELIST);
+			String publishDirMessageAsString = publishDirMessage.toString();
+			byte[] requestData = publishDirMessageAsString.getBytes();
+			byte[] response = sendAndReceiveDatagrams(requestData);
+			
+			if (response != null) {
+				String responseAsString = new String(response, 0, response.length);
+				System.out.println("Receiving... " + responseAsString);
+
+				DirMessage msgFromServer = DirMessage.fromString(responseAsString);
+				if (msgFromServer != null && msgFromServer.getOperation().equals(DirMessageOps.OPERATION_FILELIST_RESPONSE)) {
+					System.out.println("FileListOK received - success.");
+					FileInfo[] fileInfo = msgFromServer.getFileList().toArray(new FileInfo[msgFromServer.getFileList().size()]);
+					return fileInfo;
+				} else
+					System.out.println("FileListNOK not received - not accepted.");
+			}
+		}catch (Exception e){
+			System.err.println("Error during filelist: " + e.getMessage());
+			e.printStackTrace();
+		};
+		
+		return new FileInfo[0];
+		
+	}
+
+	/**
+	 * Método para obtener la lista de servidores que tienen un fichero cuyo nombre
+	 * contenga la subcadena dada.
+	 * 
+	 * @filenameSubstring Subcadena del nombre del fichero a buscar
+	 * 
+	 * @return La lista de direcciones de los servidores que han publicado al
+	 *         directorio el fichero indicado. Si no hay ningún servidor, devuelve
+	 *         una lista vacía.
+	 */
+
+	public InetSocketAddress[] getServersSharingThisFile(String filenameSubstring) {
+		// TODO: Ver TODOs en pingDirectory y seguir esquema similar
+		
+		try {
+			DirMessage filesRequest = new DirMessage(DirMessageOps.OPERATION_SEARCH);
+			filesRequest.setTarget(filenameSubstring);
+			String msgAsString = filesRequest.toString();
+			byte[] requestData = msgAsString.getBytes();
+			byte[] response = sendAndReceiveDatagrams(requestData);
+
+			if (response != null) {
+				String responseAsString = new String(response, 0, response.length);
+				System.out.println("Receiving... " + responseAsString);
+
+				DirMessage msgFromServer = DirMessage.fromString(responseAsString);
+				if (msgFromServer != null && msgFromServer.getOperation().equals(DirMessageOps.OPERATION_SEARCH_SUCCESS)) {
+					System.out.println("DownloadResponse received - success.");
+					InetSocketAddress[] it = msgFromServer.getDirList().toArray(new InetSocketAddress[msgFromServer.getDirList().size()]);
+					System.out.println(it[0]);
+					return it;
+				} else
+					System.out.println("DownloadNotResponse received - not accepted.");
+			}
+		} catch (Exception e) {
+			System.err.println("Error during search: " + e.getMessage());
+			e.printStackTrace();
+		}
+		return new InetSocketAddress[0];
+	}
+
+	/**
+	 * Método para darse de baja como servidor de ficheros.
+	 * 
+	 * @return Verdadero si el directorio tiene registrado a este peer como servidor
+	 *         y ha dado de baja sus ficheros.
+	 */
+	public boolean unregisterFileServer(int port) {
+		boolean success = false;
+
+		try {
+			DirMessage quitRequest = new DirMessage(DirMessageOps.OPERATION_QUIT);
+			quitRequest.setQuitPort(port);
+			String msgAString = quitRequest.toString();
+			byte[] requestData = msgAString.getBytes();
+			byte[] response = sendAndReceiveDatagrams(requestData);
+			if (response != null) {
+				String responseAsString = new String(response, 0, response.length);
+				System.out.println("Receiving... " + responseAsString);
+
+				DirMessage msgFromServer = DirMessage.fromString(responseAsString);
+				if (msgFromServer != null && msgFromServer.getOperation().equals(DirMessageOps.OPERATION_QUIT_SUCCESS)) {
+					System.out.println("quitResponse received - success.");
+					success = true;
+				} else
+					System.out.println("quitResponse received - unknown message.");
+			}
+			
+		}catch (Exception e) {
+			System.err.println("Error during quit: " + e.getMessage());
+			e.printStackTrace();
+		}
+		
+		
+		return success;
+	}
+
+}

@@ -1,0 +1,36 @@
+package es.um.redes.nanoFiles.udp.message;
+
+public class DirMessageOps {
+
+	/*
+	 * TODO: (Boletín MensajesASCII) Añadir aquí todas las constantes que definen
+	 * los diferentes tipos de mensajes del protocolo de comunicación con el
+	 * directorio (valores posibles del campo "operation").
+	 */
+	public static final String OPERATION_INVALID = "invalid_operation";
+	
+	// Constantes del comando ping.
+	public static final String OPERATION_PING = "ping";
+	public static final String OPERATION_PING_OK = "pingOK";
+	public static final String OPERATION_PING_NOK = "pingNOK";
+	
+	// Constantes del comando filelist.
+	public static final String OPERATION_FILELIST = "filelist";
+	public static final String OPERATION_FILELIST_RESPONSE = "responseFiles";
+	
+	// Constantes del comando serve.
+	public static final String OPERATION_SERVE = "serve";
+	public static final String OPERATION_SERVE_SUCCESS = "serveSuccess";
+	
+	// Constantes del comando download.
+	public static final String OPERATION_DOWNLOAD = "download";
+	public static final String OPERATION_DOWNLOAD_RESPONSE = "responseDownload";
+	
+	public static final String OPERATION_SEARCH = "search";
+	public static final String OPERATION_SEARCH_SUCCESS = "searchSuccess";
+	public static final String OPERATION_SEARCH_UNSUCCESS = "searchUnSuccess";
+
+	public static final String OPERATION_QUIT = "quit";
+	public static final String OPERATION_QUIT_SUCCESS = "quitSuccess";
+
+}
