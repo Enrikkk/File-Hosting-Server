@@ -1,10 +1,13 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <dirs>
     <entry loc="C:\Program Files\Java\jdk-23\bin" stamp="1741373980304"/>
+    <entry loc="/home/enrikkk/.p2/pool/plugins/org.eclipse.justj.openjdk.hotspot.jre.full.linux.x86_64_21.0.8.v20250724-1412/jre" stamp="1757185268389"/>
     <entry loc="C:\Users\kikem\.p2\pool\plugins\org.eclipse.justj.openjdk.hotspot.jre.full.win32.x86_64_22.0.2.v20240802-1626" stamp="1725892302293"/>
     <entry loc="C:\Program Files\Java\jdk-23" stamp="1741373981659"/>
     <entry loc="C:\Users\kikem\.p2\pool\plugins\org.eclipse.justj.openjdk.hotspot.jre.full.win32.x86_64_22.0.2.v20240802-1626\jre" stamp="1725892302292"/>
     <entry loc="C:\Program Files\Java\jdk-21" stamp="1730028306837"/>
     <entry loc="C:\Users\Usuario\.p2\pool\plugins\org.eclipse.justj.openjdk.hotspot.jre.full.win32.x86_64_22.0.2.v20240802-1626" stamp="1725892053146"/>
+    <entry loc="/usr/lib/jvm/java-21-openjdk-amd64" stamp="1757766795796"/>
+    <entry loc="/home/enrikkk/.p2/pool/plugins/org.eclipse.justj.openjdk.hotspot.jre.full.linux.x86_64_21.0.8.v20250724-1412" stamp="1757185268389"/>
     <entry loc="C:\Users\Usuario\.p2\pool\plugins\org.eclipse.justj.openjdk.hotspot.jre.full.win32.x86_64_22.0.2.v20240802-1626\jre" stamp="1725892053146"/>
 </dirs>
