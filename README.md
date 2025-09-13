@@ -94,7 +94,7 @@ When running a NanoFiles peer, the following commands are available:
 
 ## 📖 Documentation
 
-* [📄 PDF Report](./docs/) – detailed description of the system, protocols, and implementation.
+* [📄 PDF Report](./docs/) – detailed description of the system, protocols, and implementation (Spanish).
 * [🎥 Demo Video](./demo/) – short video showing the project in action.
 
 ---
